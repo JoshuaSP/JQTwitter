@@ -1,6 +1,9 @@
 $.InfiniteTweets = function(el) {
+  this.maxCreatedAt = null;
   this.$el = $(el);
-  this.$el.find('.fetch-more').on('click', this.fetchTweets.bind(this));
+  this.$moreTweets = this.$el.find('.fetch-more');
+  this.$moreTweets.on('click', this.fetchTweets.bind(this));
+  this.fetchTweets();
 };
 
 $.fn.infiniteTweets = function () {
@@ -9,26 +12,34 @@ $.fn.infiniteTweets = function () {
   });
 };
 
-$.InfinitTweets.prototype = {
+$.InfiniteTweets.prototype = {
   fetchTweets: function() {
+    var data = this.maxCreatedAt ? {max_created_at: this.maxCreatedAt} : {};
     $.ajax({
       url: '/feed',
       type: 'GET',
-      data: {
-        num: ,
-        max_created_at:
-      },
+      data: data,
+      dataType: 'json',
       success: function(response) {
         this.insertTweets(response);
-      }
-    })
+        if (response.length < 20) {
+          this.toggleMoreButton();
+          return;
+        }
+        this.maxCreatedAt = response.slice(-1)[0].created_at;
+      }.bind(this)
+    });
   },
 
   insertTweets: function(response) {
     var listItems = response.map(function(tweet) {
       var $li = $('<li>');
-      $li.html(JSON.stringify(tweet));
+      return $li.html(JSON.stringify(tweet));
     });
     this.$el.find('#feed').append(listItems);
+  },
+
+  toggleMoreButton: function() {
+    this.$moreTweets.html("NO MOAR TWEETS").off().prop('disable', true);
   }
 };
